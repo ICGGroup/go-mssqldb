@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"reflect"
 	"strconv"
 	"time"
-	"reflect"
 )
 
 // fixed-length data types
@@ -240,7 +240,7 @@ func decodeDateTim4(buf []byte) time.Time {
 	days := binary.LittleEndian.Uint16(buf)
 	mins := binary.LittleEndian.Uint16(buf[2:])
 	return time.Date(1900, 1, 1+int(days),
-		0, int(mins), 0, 0, time.UTC)
+		0, int(mins), 0, 0, time.Local)
 }
 
 func decodeDateTime(buf []byte) time.Time {
@@ -249,10 +249,10 @@ func decodeDateTime(buf []byte) time.Time {
 	ns := int(math.Trunc(float64(tm%300)/0.3+0.5)) * 1000000
 	secs := int(tm / 300)
 	return time.Date(1900, 1, 1+int(days),
-		0, 0, secs, ns, time.UTC)
+		0, 0, secs, ns, time.Local)
 }
 
-func readFixedType(ti *typeInfo, r *tdsBuffer) (interface{}) {
+func readFixedType(ti *typeInfo, r *tdsBuffer) interface{} {
 	r.ReadFull(ti.Buffer)
 	buf := ti.Buffer
 	switch ti.TypeId {
@@ -286,7 +286,7 @@ func readFixedType(ti *typeInfo, r *tdsBuffer) (interface{}) {
 	panic("shoulnd't get here")
 }
 
-func readByteLenType(ti *typeInfo, r *tdsBuffer) (interface{}) {
+func readByteLenType(ti *typeInfo, r *tdsBuffer) interface{} {
 	size := r.byte()
 	if size == 0 {
 		return nil
@@ -381,7 +381,7 @@ func writeByteLenType(w io.Writer, ti typeInfo, buf []byte) (err error) {
 	return
 }
 
-func readShortLenType(ti *typeInfo, r *tdsBuffer) (interface{}) {
+func readShortLenType(ti *typeInfo, r *tdsBuffer) interface{} {
 	size := r.uint16()
 	if size == 0xffff {
 		return nil
@@ -424,7 +424,7 @@ func writeShortLenType(w io.Writer, ti typeInfo, buf []byte) (err error) {
 	return
 }
 
-func readLongLenType(ti *typeInfo, r *tdsBuffer) (interface{}) {
+func readLongLenType(ti *typeInfo, r *tdsBuffer) interface{} {
 	// information about this format can be found here:
 	// http://msdn.microsoft.com/en-us/library/dd304783.aspx
 	// and here:
@@ -485,7 +485,7 @@ func writeLongLenType(w io.Writer, ti typeInfo, buf []byte) (err error) {
 
 // reads variant value
 // http://msdn.microsoft.com/en-us/library/dd303302.aspx
-func readVariantType(ti *typeInfo, r *tdsBuffer) (interface{}) {
+func readVariantType(ti *typeInfo, r *tdsBuffer) interface{} {
 	size := r.int32()
 	if size == 0 {
 		return nil
@@ -577,7 +577,7 @@ func readVariantType(ti *typeInfo, r *tdsBuffer) (interface{}) {
 
 // partially length prefixed stream
 // http://msdn.microsoft.com/en-us/library/dd340469.aspx
-func readPLPType(ti *typeInfo, r *tdsBuffer) (interface{}) {
+func readPLPType(ti *typeInfo, r *tdsBuffer) interface{} {
 	size := r.uint64()
 	var buf *bytes.Buffer
 	switch size {
@@ -782,7 +782,7 @@ func decodeDateInt(buf []byte) (days int) {
 }
 
 func decodeDate(buf []byte) time.Time {
-	return time.Date(1, 1, 1+decodeDateInt(buf), 0, 0, 0, 0, time.UTC)
+	return time.Date(1, 1, 1+decodeDateInt(buf), 0, 0, 0, 0, time.Local)
 }
 
 func decodeTimeInt(scale uint8, buf []byte) (sec int, ns int) {
@@ -802,14 +802,14 @@ func decodeTimeInt(scale uint8, buf []byte) (sec int, ns int) {
 
 func decodeTime(scale uint8, buf []byte) time.Time {
 	sec, ns := decodeTimeInt(scale, buf)
-	return time.Date(1, 1, 1, 0, 0, sec, ns, time.UTC)
+	return time.Date(1, 1, 1, 0, 0, sec, ns, time.Local)
 }
 
 func decodeDateTime2(scale uint8, buf []byte) time.Time {
 	timesize := len(buf) - 3
 	sec, ns := decodeTimeInt(scale, buf[:timesize])
 	days := decodeDateInt(buf[timesize:])
-	return time.Date(1, 1, 1+days, 0, 0, sec, ns, time.UTC)
+	return time.Date(1, 1, 1+days, 0, 0, sec, ns, time.Local)
 }
 
 func decodeDateTimeOffset(scale uint8, buf []byte) time.Time {

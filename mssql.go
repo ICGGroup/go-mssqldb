@@ -603,6 +603,7 @@ func (s *MssqlStmt) makeParam(val driver.Value) (res Param, err error) {
 		}
 	case time.Time:
 		if s.c.sess.loginAck.TDSVersion >= verTDS73 {
+			val = val.Local()
 			res.ti.TypeId = typeDateTimeOffsetN
 			res.ti.Scale = 7
 			res.ti.Size = 10
